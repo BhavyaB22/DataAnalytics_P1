@@ -74,17 +74,9 @@ q4 = run_query('''
     ORDER BY total_prescriptions DESC
 ''')
 
-q5 = run_query('''
-    SELECT DATE(a.admission_date) AS month,
-           COUNT(pr.prescription_id) AS prescriptions
-    FROM prescriptions pr
-    JOIN admissions a ON pr.admission_id = a.admission_id
-    WHERE a.admission_date IS NOT NULL
-    GROUP BY DATE(a.admission_date)
-    ORDER BY month
-''')
 
-q6 = run_query('''
+
+q5 = run_query('''
     SELECT e.employee_name AS doctor_name,
            dep.department_name,
            COUNT(pr.prescription_id) AS total_prescriptions
@@ -99,11 +91,11 @@ q6 = run_query('''
     ORDER BY total_prescriptions DESC
     LIMIT 15
 ''')
-avg = q6['total_prescriptions'].mean()
-std = q6['total_prescriptions'].std()
-q6['is_outlier'] = q6['total_prescriptions'] >= (avg + 1.5 * std)
+avg = q5['total_prescriptions'].mean()
+std = q5['total_prescriptions'].std()
+q5['is_outlier'] = q5['total_prescriptions'] >= (avg + 1.5 * std)
 
-q7 = run_query('''
+q6 = run_query('''
     SELECT dis.disease_name,
            dis.disease_category,
            COUNT(a.admission_id) AS total_cases
@@ -116,7 +108,7 @@ q7 = run_query('''
     LIMIT 10
 ''')
 
-q8 = run_query('''
+q7 = run_query('''
     SELECT d.drug_category,
            COUNT(pr.prescription_id) AS times_prescribed
     FROM prescriptions pr
@@ -125,7 +117,7 @@ q8 = run_query('''
     ORDER BY times_prescribed DESC
 ''')
 
-q9 = run_query('''
+q8 = run_query('''
     SELECT admission_type,
            COUNT(*) AS total_admissions
     FROM admissions
@@ -133,7 +125,7 @@ q9 = run_query('''
     ORDER BY total_admissions DESC
 ''')
 
-q10 = run_query('''
+q9 = run_query('''
     SELECT d.drug_name, d.drug_category,
            di.current_stock, di.reorder_level,
            di.inventory_status
@@ -164,33 +156,34 @@ menu = """
   3.  Gender-wise Distribution
   4.  Age Group vs Prescriptions
   5.  Department-wise Volume
-  6.  Monthly Prescription Trend
-  7.  Doctor Prescription Volume
-  8.  Top 10 Diseases
-  9.  Drug Category Breakdown
-  10. Admission Type Analysis
-  11. Low Drug Inventory Alert
+  6.  Doctor Prescription Volume
+  7.  Top 10 Diseases
+  8.  Drug Category Breakdown
+  9. Admission Type Analysis
+  10. Low Drug Inventory Alert
   0.  Exit
 ========================================="""
 while True:
     print(menu)
-    choice = input('Enter your choice: ').strip()
+    choice = input("Enter your choice: ").strip()
 
     if choice == '0':
-        print('Goodbye!')
+        print("Goodbye!")
         break
 
     elif choice == '1':
-        print('\n--- Quick Stats ---')
-        print('Total Patients      :', total_patients)
-        print('Total Admissions    :', total_admissions)
-        print('Total Prescriptions :', total_prescriptions)
-        print('Total Drugs         :', total_drugs)
-        print('Low Stock Drugs     :', len(q10))
+        print("\n--- Quick Stats ---")
+        print("Total Patients      :", total_patients)
+        print("Total Admissions    :", total_admissions)
+        print("Total Prescriptions :", total_prescriptions)
+        print("Total Drugs         :", total_drugs)
 
     elif choice == '2':
         plt.figure(figsize=(10,6))
-        plt.barh(q1['drug_name'], q1['prescription_count'])
+        plt.barh(
+            q1['drug_name'],
+            q1['prescription_count']
+        )
         plt.title('Top 10 Prescribed Medicines')
         plt.xlabel('Prescription Count')
         plt.tight_layout()
@@ -218,81 +211,88 @@ while True:
         plt.tight_layout()
         plt.show()
 
+
     elif choice == '5':
+
         plt.figure(figsize=(10,5))
+
         plt.bar(
             q4['department_name'],
             q4['total_prescriptions']
         )
+
         plt.title('Department-wise Prescription Volume')
-        plt.xticks(rotation=45)
+
+        plt.xticks(rotation=30)
+
         plt.tight_layout()
         plt.show()
 
     elif choice == '6':
-        plt.figure(figsize=(12,5))
-        plt.plot(
-            q5['month'],
-            q5['prescriptions'],
-            marker='o'
+
+        plt.figure(figsize=(12,6))
+
+        top_doctors = q5.head(10).sort_values(
+            'total_prescriptions',
+            ascending=True
         )
-        plt.title('Monthly Prescription Trend')
-        plt.xticks(rotation=45)
+
+        plt.barh(
+            top_doctors['doctor_name'],
+            top_doctors['total_prescriptions']
+        )
+
+        plt.title('Doctor-wise Prescription Volume')
+        plt.xlabel('Total Prescriptions')
+
         plt.tight_layout()
         plt.show()
 
+
     elif choice == '7':
+
         plt.figure(figsize=(12,6))
+
         plt.barh(
-            q6['doctor_name'],
-            q6['total_prescriptions']
+            q6['disease_name'],
+            q6['total_cases']
         )
-        plt.title('Doctor Prescription Volume')
+
+        plt.title('Top Diseases')
+        plt.xlabel('Total Cases')
+
         plt.tight_layout()
         plt.show()
 
     elif choice == '8':
-        plt.figure(figsize=(12,6))
-        plt.barh(
-            q7['disease_name'],
-            q7['total_cases']
+
+        plt.figure(figsize=(8,8))
+
+        plt.pie(
+            q7['times_prescribed'],
+            labels=q7['drug_category'],
+            autopct='%1.1f%%'
         )
-        plt.title('Top 10 Diseases')
-        plt.tight_layout()
+
+        plt.title('Drug Category Distribution')
         plt.show()
 
     elif choice == '9':
-        plt.figure(figsize=(8,8))
-        plt.pie(
-            q8['times_prescribed'],
-            labels=q8['drug_category'],
-            autopct='%1.1f%%'
-        )
-        plt.title('Drug Category Breakdown')
-        plt.show()
 
-    elif choice == '10':
-        plt.figure(figsize=(8,8))
-        plt.pie(
-            q9['total_admissions'],
-            labels=q9['admission_type'],
-            autopct='%1.1f%%'
-        )
-        plt.title('Admission Type Analysis')
-        plt.show()
-
-    elif choice == '11':
         plt.figure(figsize=(12,6))
+
         plt.barh(
-            q10['drug_name'],
-            q10['current_stock']
+            q9['drug_name'],
+            q9['current_stock']
         )
-        plt.title('Low Drug Inventory Alert')
+
+        plt.title('Low Inventory Drugs')
         plt.xlabel('Current Stock')
+
         plt.tight_layout()
         plt.show()
 
     else:
-        print('Invalid choice. Please enter a number from 0 to 11.')
+        print("Invalid choice. Please enter a number from 0 to 10.")
 
 conn.close()
